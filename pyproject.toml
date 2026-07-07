@@ -1,0 +1,13 @@
+[project]
+name = "modelmetre"
+version = "0.1.0"
+dependencies = [
+  "typer",
+  "rich"
+]
+
+[project.scripts]
+mm = "modelmetre.cli.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
