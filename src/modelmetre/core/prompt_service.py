@@ -4,6 +4,7 @@ from modelmetre.core.models import InteractionRecord, PromptRequest
 from modelmetre.core.usage_tracker import UsageTracker
 from modelmetre.providers.base import Provider
 from modelmetre.providers.factory import ProviderFactory
+from modelmetre.config.config_service import ConfigService
 
 
 class PromptService:
@@ -16,6 +17,8 @@ class PromptService:
         self.tracker = tracker or UsageTracker()
 
     def ask(self, request: PromptRequest) -> InteractionRecord:
+        config = ConfigService()
+        request = config.apply_defaults(request)
         selected_provider = self.provider or ProviderFactory().create(request.provider)
         provider_response = selected_provider.send_prompt(request)
 

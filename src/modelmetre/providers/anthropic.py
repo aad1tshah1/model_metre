@@ -7,17 +7,28 @@ from modelmetre.core.models import PromptRequest
 from modelmetre.providers.base import Provider, ProviderResponse
 
 
+ANTHROPIC_MODEL_ALIASES = {
+    "sonnet": "claude-sonnet-4-5",
+    "opus": "claude-opus-4-1",
+    "haiku": "claude-haiku-4-5",
+}
+
+
+def resolve_anthropic_model(model: str) -> str:
+    return ANTHROPIC_MODEL_ALIASES.get(model, model)
+
+
 class AnthropicProvider(Provider):
     def __init__(
         self,
         api_key: str,
-        default_model: str = "claude-sonnet-4-6",
+        default_model: str = "haiku",
     ) -> None:
         self.api_key = api_key
         self.default_model = default_model
 
     def send_prompt(self, request: PromptRequest) -> ProviderResponse:
-        model = request.model or self.default_model
+        model = resolve_anthropic_model(request.model or self.default_model)
 
         started = time.perf_counter()
 
