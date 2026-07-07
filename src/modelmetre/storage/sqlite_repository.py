@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 
 from modelmetre.core.models import InteractionRecord
@@ -25,8 +26,8 @@ class SQLiteUsageRepository(UsageRepository):
                     input_tokens INTEGER NOT NULL,
                     output_tokens INTEGER NOT NULL,
                     latency_ms INTEGER NOT NULL,
-                    estimated_cost REAL NOT NULL,
-                    estimated_energy REAL NOT NULL,
+                    estimated_cost TEXT NOT NULL,
+                    estimated_energy TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 )
                 """
@@ -50,8 +51,8 @@ class SQLiteUsageRepository(UsageRepository):
                     record.input_tokens,
                     record.output_tokens,
                     record.latency_ms,
-                    record.estimated_cost,
-                    record.estimated_energy,
+                    str(record.estimated_cost),
+                    str(record.estimated_energy),
                     record.created_at.isoformat(),
                 ),
             )
@@ -60,7 +61,13 @@ class SQLiteUsageRepository(UsageRepository):
     def get_all(self) -> list[InteractionRecord]:
         with sqlite3.connect(self.db_path) as connection:
             rows = connection.execute(
-                "SELECT provider, model, prompt, response, input_tokens, output_tokens, latency_ms, estimated_cost, estimated_energy, created_at FROM usage_events ORDER BY id"
+                """
+                SELECT provider, model, prompt, response, input_tokens,
+                       output_tokens, latency_ms, estimated_cost,
+                       estimated_energy, created_at
+                FROM usage_events
+                ORDER BY id
+                """
             ).fetchall()
 
         return [
@@ -69,30 +76,31 @@ class SQLiteUsageRepository(UsageRepository):
                 model=row[1],
                 prompt=row[2],
                 response=row[3],
-                input_tokens=row[4],
-                output_tokens=row[5],
-                latency_ms=row[6],
-                estimated_cost=row[7],
-                estimated_energy=row[8],
+                input_tokens=int(row[4]),
+                output_tokens=int(row[5]),
+                latency_ms=int(row[6]),
+                estimated_cost=Decimal(str(row[7])),
+                estimated_energy=Decimal(str(row[8])),
                 created_at=datetime.fromisoformat(row[9]),
             )
             for row in rows
         ]
 
-    def get_summary(self) -> dict[str, float | int]:
-        with sqlite3.connect(self.db_path) as connection:
-            row = connection.execute(
-                """
-                SELECT
-                    COUNT(*) AS total_interactions,
-                    COALESCE(SUM(estimated_cost), 0) AS total_cost,
-                    COALESCE(SUM(input_tokens + output_tokens), 0) AS total_tokens
-                FROM usage_events
-                """
-            ).fetchone()
+    def get_summary(self) -> dict[str, Decimal | int]:
+        records = self.get_all()
+
+        total_cost = sum(
+            (record.estimated_cost for record in records),
+            Decimal("0.00"),
+        )
+
+        total_tokens = sum(
+            record.input_tokens + record.output_tokens
+            for record in records
+        )
 
         return {
-            "total_interactions": int(row[0]),
-            "total_cost": round(float(row[1]), 4),
-            "total_tokens": int(row[2]),
+            "total_interactions": len(records),
+            "total_cost": total_cost.quantize(Decimal("0.0001")),
+            "total_tokens": total_tokens,
         }

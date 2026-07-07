@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-
+from decimal import Decimal
 
 @dataclass
 class PromptRequest:
@@ -19,6 +19,6 @@ class InteractionRecord:
     input_tokens: int
     output_tokens: int
     latency_ms: int
-    estimated_cost: float
-    estimated_energy: float
+    estimated_cost: Decimal
+    estimated_energy: Decimal
     created_at: datetime
