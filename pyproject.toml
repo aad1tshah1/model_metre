@@ -3,7 +3,8 @@ name = "modelmetre"
 version = "0.1.0"
 dependencies = [
   "typer",
-  "rich"
+  "rich", 
+  "httpx"
 ]
 
 [project.scripts]

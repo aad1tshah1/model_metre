@@ -3,7 +3,7 @@ from datetime import datetime
 from modelmetre.core.models import InteractionRecord, PromptRequest
 from modelmetre.core.usage_tracker import UsageTracker
 from modelmetre.providers.base import Provider
-from modelmetre.providers.fake import FakeProvider
+from modelmetre.providers.factory import ProviderFactory
 
 
 class PromptService:
@@ -12,11 +12,12 @@ class PromptService:
         provider: Provider | None = None,
         tracker: UsageTracker | None = None,
     ) -> None:
-        self.provider = provider or FakeProvider()
+        self.provider = provider
         self.tracker = tracker or UsageTracker()
 
     def ask(self, request: PromptRequest) -> InteractionRecord:
-        provider_response = self.provider.send_prompt(request)
+        selected_provider = self.provider or ProviderFactory().create(request.provider)
+        provider_response = selected_provider.send_prompt(request)
 
         record = InteractionRecord(
             provider=provider_response.provider,
